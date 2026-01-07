@@ -7,31 +7,26 @@
 int get_arg(char *code, size_t code_size, int is_signed, size_t *i, int *out_arg) {
     int value = 0;
     int sign = 1;
+
     int seen_bit = 0;
     int found_sign = 0;
+
     for (; *i < code_size; (*i)++) {
         char c = code[*i];
-        if (!found_sign && is_signed) {
-            if (c == S) {
-                sign = 1;
-                found_sign = 1;
-            } else if (c == T) {
-                sign = -1;
-                found_sign = 1;
-            } else if (c == L) return 1;
-            continue;
-        }
-           
-        if (c == S) {
-            value <<= 1;
-            seen_bit = 1;
-        } else if (c == T) {
-            value = (value << 1) + 1;
-            seen_bit = 1;
-        } else if (c == L) {
-            if (!seen_bit) return 1;
-            *out_arg = sign * value;
-            return 0;
+
+        int st = is_signed && !found_sign;
+        switch (c) {
+            case S:
+                if (st) { sign = 1; found_sign = 1; }
+                else { value <<= 1; seen_bit = 1; }
+                break;
+            case T:
+                if (st) { sign = -1; found_sign = 1; }
+                else { value = (value << 1) + 1; seen_bit = 1; }
+                break;
+            case L:
+                if (!seen_bit || res) return 1;
+                else { *out_arg = sign * value; return 0; }
         }
     }
     return 1;
@@ -42,7 +37,7 @@ SYM sym(char c) {
         case S: return SYM_S;
         case T: return SYM_T;
         case L: return SYM_L;
-        default: return SYM_ERR;
+        default: return SYM_INV;
     }
 }
 
@@ -129,7 +124,7 @@ const TR tr_table[NUM_ST][3] = {
     },
 };
 
-FSM_RTN parser(char *code, size_t code_size,
+PRS_RTN parser(char *code, size_t code_size,
                size_t *out_i, AST *out_ast, HEAP *out_labels) {
     ST st = ST_START;
 
@@ -139,22 +134,23 @@ FSM_RTN parser(char *code, size_t code_size,
     for (size_t i = 0; i < code_size; i++) {
         unsigned char c = (unsigned char)code[i];
         int j = sym(c);
-        if (j == SYM_ERR) continue;
+        if (j == SYM_INV) continue;
 
-        INST cur_inst;
+        INST cur_inst = {0};
 
         TR cur_tr = tr_table[st][j];
 
         if (cur_tr.st_next == ST_ERR) {
             *out_i = i;
-            return FSM_RTN_ERR_INST;
+            return PRS_RTN_ERR_INST;
         }
 
         if (cur_tr.has_arg) {
             i++;
-            if (get_arg(code, code_size, cur_tr.arg_signed, &i, &cur_inst.arg) == 1) {
+            int res = get_arg(code, code_size, cur_tr.arg_signed, &i, &cur_inst.arg);
+            if (res) {
                 *out_i = i;
-                return FSM_RTN_ERR_ARG;
+                return PRS_RTN_ERR_ARG;
             }
         }
         
@@ -167,19 +163,23 @@ FSM_RTN parser(char *code, size_t code_size,
                 if (!tmp) {
                     free(out_ast->inst);
                     *out_i = i;
-                    return FSM_RTN_ERR_ALLOC;
+                    return PRS_RTN_ERR_ALLOC;
                 }
                 out_ast->inst = tmp;
             }
-            out_ast->inst[len++] = cur_inst;
 
             if (cur_inst.op == OP_MARK) {
-                
+                int res = store(out_labels, cur_inst.arg, len + 1);
+                if (res) return PRS_RTN_ERR_ALLOC;
             }
+
+            out_ast->inst[len++] = cur_inst;
+
+            printf("op: %d\narg: %d\n\n", cur_inst.op, cur_inst.arg);
         }
 
         st = cur_tr.st_next;
     }
     out_ast->len = len;
-    return st == ST_START ? FSM_RTN_OK : FSM_RTN_ERR_INST;
+    return st == ST_START ? PRS_RTN_OK : PRS_RTN_ERR_INST;
 }

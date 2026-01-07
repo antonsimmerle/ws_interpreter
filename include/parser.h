@@ -35,7 +35,7 @@ typedef enum {
     SYM_S,
     SYM_T,
     SYM_L,
-    SYM_ERR,
+    SYM_INV,
 } SYM;
 
 typedef enum {
@@ -70,11 +70,11 @@ typedef enum {
 } OP;
 
 typedef enum {
-    FSM_RTN_OK,
-    FSM_RTN_ERR_INST,
-    FSM_RTN_ERR_ARG,
-    FSM_RTN_ERR_ALLOC,
-} FSM_RTN;
+    PRS_RTN_OK,
+    PRS_RTN_ERR_INST,
+    PRS_RTN_ERR_ARG,
+    PRS_RTN_ERR_ALLOC,
+} PRS_RTN;
 
 typedef struct {
     OP op;
@@ -94,7 +94,7 @@ typedef struct {
 } AST; 
 
 int get_arg(char *code, size_t code_size, int is_signed, size_t *i, int *out_arg);
-FSM_RTN parser(char *code, size_t code_size,
+PRS_RTN parser(char *code, size_t code_size,
                size_t *out_i, AST *out_ast, HEAP *out_labels);
 
 #endif

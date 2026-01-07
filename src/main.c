@@ -19,8 +19,23 @@ int main(int argc, char **argv) {
     AST ast;
     HEAP labels;
     size_t i;
-    FSM_RTN ret = parser(file_content, (size_t)file_size, 
+    PRS_RTN ret = parser(file_content, (size_t)file_size, 
                      &i, &ast, &labels);
+
+    switch (ret) {
+        case PRS_RTN_OK:
+            printf("Note: OK\n");
+            break;
+        case PRS_RTN_ERR_INST:
+            printf("Error: Invalid instruction at %zu\n", i);
+            break;
+        case PRS_RTN_ERR_ARG:
+            printf("Error: Invalid argument at %zu\n", i);
+            break;
+        case PRS_RTN_ERR_ALLOC:
+            printf("Error: Memory allocation failed\n");
+            break;
+    }
 
     free(file_content);
     return 0;
