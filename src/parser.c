@@ -1,10 +1,10 @@
+#include "parser.h"
+#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "utils.h"
-#include "parser.h"
-
-int get_arg(char *code, size_t code_size, int is_signed, size_t *i, int *out_arg) {
+int get_arg(const char *code, size_t code_size, int is_signed, size_t *i,
+            int *out_arg) {
     int value = 0;
     int sign = 1;
 
@@ -25,14 +25,14 @@ int get_arg(char *code, size_t code_size, int is_signed, size_t *i, int *out_arg
                 else { value = (value << 1) + 1; seen_bit = 1; }
                 break;
             case L:
-                if (!seen_bit || res) return 1;
+                if (!seen_bit || st) return 1;
                 else { *out_arg = sign * value; return 0; }
         }
     }
     return 1;
 }
 
-SYM sym(char c) {
+SYM sym(unsigned char c) {
     switch (c) {
         case S: return SYM_S;
         case T: return SYM_T;
@@ -124,16 +124,15 @@ const TR tr_table[NUM_ST][3] = {
     },
 };
 
-PRS_RTN parser(char *code, size_t code_size,
-               size_t *out_i, AST *out_ast, HEAP *out_labels) {
+PRS_RTN parser(const char *code, size_t code_size,
+               size_t *out_i, PROG *out_prog, HEAP *out_labels) {
     ST st = ST_START;
 
     size_t len = 0;
     size_t cap = 0;
 
     for (size_t i = 0; i < code_size; i++) {
-        unsigned char c = (unsigned char)code[i];
-        int j = sym(c);
+        int j = sym((unsigned char)code[i]);
         if (j == SYM_INV) continue;
 
         INST cur_inst = {0};
@@ -159,27 +158,25 @@ PRS_RTN parser(char *code, size_t code_size,
 
             if (len >= cap) {
                 cap = (cap == 0) ? 16 : cap * 2;
-                INST *tmp = realloc(out_ast->inst, cap * sizeof(INST));
+                INST *tmp = realloc(out_prog->inst, cap * sizeof(INST));
                 if (!tmp) {
-                    free(out_ast->inst);
+                    free(out_prog->inst);
                     *out_i = i;
                     return PRS_RTN_ERR_ALLOC;
                 }
-                out_ast->inst = tmp;
+                out_prog->inst = tmp;
             }
+
+            out_prog->inst[len++] = cur_inst;
 
             if (cur_inst.op == OP_MARK) {
                 int res = store(out_labels, cur_inst.arg, len + 1);
                 if (res) return PRS_RTN_ERR_ALLOC;
             }
-
-            out_ast->inst[len++] = cur_inst;
-
-            printf("op: %d\narg: %d\n\n", cur_inst.op, cur_inst.arg);
         }
 
         st = cur_tr.st_next;
     }
-    out_ast->len = len;
+    out_prog->len = len;
     return st == ST_START ? PRS_RTN_OK : PRS_RTN_ERR_INST;
 }

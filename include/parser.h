@@ -1,6 +1,9 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include <stdio.h>
+#include "utils.h"
+
 #define S ' '
 #define T '\t'
 #define L '\n'
@@ -91,10 +94,11 @@ typedef struct {
 typedef struct {
     INST *inst;
     size_t len;
-} AST; 
+} PROG; 
 
-int get_arg(char *code, size_t code_size, int is_signed, size_t *i, int *out_arg);
-PRS_RTN parser(char *code, size_t code_size,
-               size_t *out_i, AST *out_ast, HEAP *out_labels);
+int get_arg(const char *code, size_t code_size, int is_signed, size_t *i,
+            int *out_arg);
+PRS_RTN parser(const char *code, size_t code_size,
+               size_t *out_i, PROG *out_prog, HEAP *out_labels);
 
 #endif

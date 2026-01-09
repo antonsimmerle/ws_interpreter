@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "utils.h"
 #include "parser.h"
+#include "utils.h"
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -16,11 +15,11 @@ int main(int argc, char **argv) {
         printf("Failed to read file\n");
     }
 
-    AST ast;
+    PROG prog;
     HEAP labels;
     size_t i;
     PRS_RTN ret = parser(file_content, (size_t)file_size, 
-                     &i, &ast, &labels);
+                     &i, &prog, &labels);
 
     switch (ret) {
         case PRS_RTN_OK:
