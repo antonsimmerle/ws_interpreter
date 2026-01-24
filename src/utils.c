@@ -38,7 +38,6 @@ int store(HEAP *heap, size_t addr, int val) {
     if (addr >= heap->cap) {
         if (heap->cap == 0) heap->cap = 16;
         while (heap->cap <= addr) heap->cap *= 2;
-
         int *tmp = realloc(heap->data, heap->cap * sizeof(int));
         if (!tmp) return 1;
         heap->data = tmp;
@@ -47,9 +46,9 @@ int store(HEAP *heap, size_t addr, int val) {
     return 0;
 }
 
-int retr(HEAP *heap, size_t addr, int *out_val) {
-    if (addr >= heap->cap) return 1;
-    *out_val = heap->data[addr];
+int retr(HEAP heap, size_t addr, int *out_val) {
+    if (addr >= heap.cap) return 1;
+    *out_val = heap.data[addr];
     return 0;
 }
 
@@ -65,8 +64,8 @@ int push(STACK *stack, int val) {
     return 0;
 }
 
-int pop(STACK *stack, int *out_val) {
-    if (stack->top == -1) return 1;
-    *out_val = stack->data[stack->top--];
+int pop(STACK stack, int *out_val) {
+    if (stack.top == -1) return 1;
+    *out_val = stack.data[stack.top--];
     return 0;
 }

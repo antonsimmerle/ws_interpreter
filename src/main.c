@@ -16,10 +16,8 @@ int main(int argc, char **argv) {
     }
 
     PROG prog;
-    HEAP labels;
-    size_t i;
-    PRS_RTN ret = parser(file_content, (size_t)file_size, 
-                     &i, &prog, &labels);
+    size_t i = 0;
+    PRS_RTN ret = parser(file_content, (size_t)file_size, &i, &prog);
 
     switch (ret) {
         case PRS_RTN_OK:
@@ -35,7 +33,7 @@ int main(int argc, char **argv) {
             printf("Error: Memory allocation failed\n");
             break;
     }
-
+    
     free(file_content);
     return 0;
 }

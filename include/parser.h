@@ -73,6 +73,12 @@ typedef enum {
 } OP;
 
 typedef enum {
+    ARG_TYPE_NONE = 0,
+    ARG_TYPE_NUM,
+    ARG_TYPE_LABEL,
+} ARG_TYPE;
+
+typedef enum {
     PRS_RTN_OK,
     PRS_RTN_ERR_INST,
     PRS_RTN_ERR_ARG,
@@ -87,18 +93,17 @@ typedef struct {
 typedef struct {
     ST st_next;
     OP op;
-    int has_arg;
-    int arg_signed;
+    ARG_TYPE arg_type;
 } TR;
 
 typedef struct {
     INST *inst;
     size_t len;
+    HEAP labels;
 } PROG; 
 
-int get_arg(const char *code, size_t code_size, int is_signed, size_t *i,
-            int *out_arg);
-PRS_RTN parser(const char *code, size_t code_size,
-               size_t *out_i, PROG *out_prog, HEAP *out_labels);
+int get_arg(const char *code, size_t code_size, size_t *i, ARG_TYPE arg_type, 
+            int *out_arg); 
+PRS_RTN parser(const char *code, size_t code_size, size_t *out_i, PROG *out_prog);
 
 #endif

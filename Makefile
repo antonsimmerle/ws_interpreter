@@ -1,5 +1,3 @@
-#const not const, size_t vs int
-
 CC = gcc
 CFLAGS = -Wall -Wextra -Iinclude
 

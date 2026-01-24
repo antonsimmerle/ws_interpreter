@@ -3,35 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int get_arg(const char *code, size_t code_size, int is_signed, size_t *i,
-            int *out_arg) {
-    int value = 0;
-    int sign = 1;
-
-    int seen_bit = 0;
-    int found_sign = 0;
-
-    for (; *i < code_size; (*i)++) {
-        char c = code[*i];
-
-        int st = is_signed && !found_sign;
-        switch (c) {
-            case S:
-                if (st) { sign = 1; found_sign = 1; }
-                else { value <<= 1; seen_bit = 1; }
-                break;
-            case T:
-                if (st) { sign = -1; found_sign = 1; }
-                else { value = (value << 1) + 1; seen_bit = 1; }
-                break;
-            case L:
-                if (!seen_bit || st) return 1;
-                else { *out_arg = sign * value; return 0; }
-        }
-    }
-    return 1;
-}
-
 SYM sym(unsigned char c) {
     switch (c) {
         case S: return SYM_S;
@@ -48,7 +19,7 @@ const TR tr_table[NUM_ST][3] = {
         [SYM_L] = { ST_L, },
     },
     [ST_S] = {
-        [SYM_S] = { ST_START, OP_PUSH, .has_arg = 1, .arg_signed = 1, },
+        [SYM_S] = { ST_START, OP_PUSH, ARG_TYPE_NUM, },
         [SYM_T] = { ST_ST, },
         [SYM_L] = { ST_SL, },
     },
@@ -63,12 +34,12 @@ const TR tr_table[NUM_ST][3] = {
         [SYM_L] = { ST_LL, },
     },
     [ST_ST] = {
-        [SYM_S] = { ST_START, OP_COPY, .has_arg = 1, .arg_signed = 1, },
+        [SYM_S] = { ST_START, OP_COPY, ARG_TYPE_NUM, },
         [SYM_T] = { ST_ERR, },
-        [SYM_L] = { ST_START, OP_SLIDE, .has_arg = 1, .arg_signed = 1, },
+        [SYM_L] = { ST_START, OP_SLIDE, ARG_TYPE_NUM, },
     },
     [ST_SL] = {
-        [SYM_S] = { ST_ERR, },
+        [SYM_S] = { ST_START, OP_DUPL, },
         [SYM_T] = { ST_START, OP_SWAP, },
         [SYM_L] = { ST_START, OP_DROP, },
     },
@@ -88,14 +59,14 @@ const TR tr_table[NUM_ST][3] = {
         [SYM_L] = { ST_ERR, },
     },
     [ST_LS] = {
-        [SYM_S] = { ST_START, OP_MARK, .has_arg = 1, .arg_signed = 0, },
-        [SYM_T] = { ST_START, OP_CALL, .has_arg = 1, .arg_signed = 0, },
-        [SYM_L] = { ST_START, OP_JMP, .has_arg = 1, .arg_signed = 0, },
+        [SYM_S] = { ST_START, OP_MARK, ARG_TYPE_LABEL, },
+        [SYM_T] = { ST_START, OP_CALL, ARG_TYPE_LABEL, },
+        [SYM_L] = { ST_START, OP_JMP, ARG_TYPE_LABEL, },
     },
     [ST_LT] = {
-        [SYM_S] = { ST_START, OP_JZ, .has_arg = 1, .arg_signed = 0, },
-        [SYM_T] = { ST_START, OP_JN, .has_arg = 1, .arg_signed = 0, },
-        [SYM_L] = { ST_START, OP_RTN },
+        [SYM_S] = { ST_START, OP_JZ, ARG_TYPE_LABEL, },
+        [SYM_T] = { ST_START, OP_JN, ARG_TYPE_LABEL, },
+        [SYM_L] = { ST_START, OP_RTN, },
     },
     [ST_LL] = {
         [SYM_S] = { ST_ERR, },
@@ -124,8 +95,37 @@ const TR tr_table[NUM_ST][3] = {
     },
 };
 
-PRS_RTN parser(const char *code, size_t code_size,
-               size_t *out_i, PROG *out_prog, HEAP *out_labels) {
+int get_arg(const char *code, size_t code_size, size_t *i, ARG_TYPE arg_type, 
+            int *out_arg) {
+    int arg = 0;
+    int sign = 1;
+
+    int found_sign = 0;
+
+    if (arg_type == ARG_TYPE_LABEL) arg = (arg << 1) + 1;
+
+    for (; *i < code_size; (*i)++) {
+        char c = code[*i];
+
+        int st = (arg_type == ARG_TYPE_NUM) && !found_sign;
+        switch (c) {
+            case S:
+                if (st) { sign = 1; found_sign = 1; }
+                else arg <<= 1;
+                break;
+            case T:
+                if (st) { sign = -1; found_sign = 1; }
+                else arg = (arg << 1) + 1;
+                break;
+            case L:
+                if (st) return 1;
+                else { *out_arg = sign * arg; return 0; }
+        }
+    }
+    return 1;
+}
+
+PRS_RTN parser(const char *code, size_t code_size, size_t *out_i, PROG *out_prog) {
     ST st = ST_START;
 
     size_t len = 0;
@@ -135,7 +135,7 @@ PRS_RTN parser(const char *code, size_t code_size,
         int j = sym((unsigned char)code[i]);
         if (j == SYM_INV) continue;
 
-        INST cur_inst = {0};
+        INST cur_inst;
 
         TR cur_tr = tr_table[st][j];
 
@@ -144,15 +144,15 @@ PRS_RTN parser(const char *code, size_t code_size,
             return PRS_RTN_ERR_INST;
         }
 
-        if (cur_tr.has_arg) {
+        if (cur_tr.arg_type != ARG_TYPE_NONE) {
             i++;
-            int res = get_arg(code, code_size, cur_tr.arg_signed, &i, &cur_inst.arg);
+            int res = get_arg(code, code_size, &i, cur_tr.arg_type, &cur_inst.arg);
             if (res) {
                 *out_i = i;
                 return PRS_RTN_ERR_ARG;
             }
         }
-        
+       
         if (cur_tr.st_next == ST_START) {
             cur_inst.op = cur_tr.op;
 
@@ -169,8 +169,11 @@ PRS_RTN parser(const char *code, size_t code_size,
 
             out_prog->inst[len++] = cur_inst;
 
+
+            printf("op: %d        arg: %d        arg_type: %d\n", cur_inst.op, cur_inst.arg, cur_tr.arg_type);
+
             if (cur_inst.op == OP_MARK) {
-                int res = store(out_labels, cur_inst.arg, len + 1);
+                int res = store(&out_prog->labels, cur_inst.arg, len + 1);
                 if (res) return PRS_RTN_ERR_ALLOC;
             }
         }
@@ -178,5 +181,6 @@ PRS_RTN parser(const char *code, size_t code_size,
         st = cur_tr.st_next;
     }
     out_prog->len = len;
+
     return st == ST_START ? PRS_RTN_OK : PRS_RTN_ERR_INST;
 }
