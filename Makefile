@@ -22,6 +22,9 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 $(BIN_DIR)/%: $(BUILD_DIR)/%.test.o $(filter-out $(BUILD_DIR)/main.o,$(OBJ)) | $(BIN_DIR)
 	$(CC) $^ -o $@
 
+$(BIN_DIR) $(BUILD_DIR):
+	mkdir -p $@
+
 .PHONY: clean
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)

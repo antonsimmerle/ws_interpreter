@@ -163,7 +163,6 @@ int op_call(VM_ENV *env, PROG *prog, size_t *ip) {
     if (push(&env->calls, *ip)) return 1;
     int jmp_i;
     if (retr(&prog->labels, arg, &jmp_i)) return 1;
-    printf("\njmp_i: %d\n", jmp_i);
     *ip = (size_t)jmp_i;
     return 0;
 }

@@ -1,3 +1,5 @@
+// all structs/enums lowercase
+
 #ifndef PARSER_H
 #define PARSER_H
 
