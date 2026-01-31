@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "parser.h"
+#include "vm.h"
 #include "utils.h"
 
 int main(int argc, char **argv) {
@@ -15,7 +16,7 @@ int main(int argc, char **argv) {
         printf("Failed to read file\n");
     }
 
-    PROG prog;
+    PROG prog = {0};
     size_t i = 0;
     PRS_RTN ret = parser(file_content, (size_t)file_size, &i, &prog);
 
@@ -33,7 +34,10 @@ int main(int argc, char **argv) {
             printf("Error: Memory allocation failed\n");
             break;
     }
-    
+
+    int vm_res = vm(&prog);
+    if (vm_res) printf("error");
+
     free(file_content);
     return 0;
 }

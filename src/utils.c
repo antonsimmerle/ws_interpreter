@@ -46,9 +46,9 @@ int store(HEAP *heap, size_t addr, int val) {
     return 0;
 }
 
-int retr(HEAP heap, size_t addr, int *out_val) {
-    if (addr >= heap.cap) return 1;
-    *out_val = heap.data[addr];
+int retr(HEAP *heap, size_t addr, int *out_val) {
+    if (addr >= heap->cap) return 1;
+    *out_val = heap->data[addr];
     return 0;
 }
 
@@ -64,8 +64,8 @@ int push(STACK *stack, int val) {
     return 0;
 }
 
-int pop(STACK stack, int *out_val) {
-    if (stack.top == -1) return 1;
-    *out_val = stack.data[stack.top--];
+int pop(STACK *stack, int *out_val) {
+    if (stack->top == -1) return 1;
+    *out_val = stack->data[stack->top--];
     return 0;
 }

@@ -12,7 +12,7 @@ SYM sym(unsigned char c) {
     }
 }
 
-const TR tr_table[NUM_ST][3] = {
+static const TR tr_table[NUM_ST][3] = {
     [ST_START] = {
         [SYM_S] = { ST_S, },
         [SYM_T] = { ST_T, },
@@ -167,16 +167,15 @@ PRS_RTN parser(const char *code, size_t code_size, size_t *out_i, PROG *out_prog
                 out_prog->inst = tmp;
             }
 
-            out_prog->inst[len++] = cur_inst;
-
-
-            printf("op: %d        arg: %d        arg_type: %d\n", cur_inst.op, cur_inst.arg, cur_tr.arg_type);
-
             if (cur_inst.op == OP_MARK) {
                 int res = store(&out_prog->labels, cur_inst.arg, len + 1);
                 if (res) return PRS_RTN_ERR_ALLOC;
-            }
-        }
+            } 
+
+            //printf("op: %d        arg: %d        arg_type: %d       len+1: %zu\n", cur_inst.op, cur_inst.arg, cur_tr.arg_type, len+1);
+
+            out_prog->inst[len++] = cur_inst;
+       }
 
         st = cur_tr.st_next;
     }

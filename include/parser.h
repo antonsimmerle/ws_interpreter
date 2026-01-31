@@ -70,6 +70,8 @@ typedef enum {
     OP_JN,
     OP_RTN,
     OP_END,
+
+    NUM_OP,
 } OP;
 
 typedef enum {
